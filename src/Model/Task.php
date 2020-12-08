@@ -23,6 +23,8 @@ use NZTA\SDLT\Model\RiskRating;
 use NZTA\SDLT\Model\TaskSubmission;
 use NZTA\SDLT\Traits\SDLTModelPermissions;
 use NZTA\SDLT\Traits\SDLTRiskCalc;
+use NZTA\SDLT\Constant\UserGroupConstant;
+use NZTA\SDLT\Model\TaskSubmissionEmail;
 use SilverStripe\Forms\DropdownField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\GridField\GridField;
@@ -34,6 +36,7 @@ use SilverStripe\Forms\GridField\GridFieldPaginator;
 use SilverStripe\Forms\GridField\GridField_ActionMenu;
 use SilverStripe\Forms\ListboxField;
 use SilverStripe\Forms\LiteralField;
+use SilverStripe\Forms\OptionsetField;
 use SilverStripe\GraphQL\OperationResolver;
 use SilverStripe\GraphQL\Scaffolding\Interfaces\ScaffoldingProvider;
 use SilverStripe\GraphQL\Scaffolding\Scaffolders\SchemaScaffolder;
@@ -84,6 +87,7 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
         'TaskType' => 'Enum(array("questionnaire", "selection", "risk questionnaire", "security risk assessment", "control validation audit"))',
         'LockAnswersWhenComplete' => 'Boolean',
         'IsApprovalRequired' => 'Boolean',
+        'SendEmailsToStakeholders' => "Enum('No,Yes', 'No')",
         'RiskCalculation' => "Enum('NztaApproxRepresentation,Maximum')",
         'ComponentTarget' => "Enum('JIRA Cloud,Local')", // when task type is SRA
         'HideRiskWeightsAndScore' => 'Boolean' // when task type is risk questionnaire
@@ -121,7 +125,8 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
      * @var array
      */
     private static $many_many = [
-        'DefaultSecurityComponents' => SecurityComponent::class
+        'DefaultSecurityComponents' => SecurityComponent::class,
+        'StakeholdersGroup' => Group::class
     ];
 
     /**
@@ -159,6 +164,7 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
         $typeField = $fields->dataFieldByName('TaskType');
         $riskField = $fields->dataFieldByName('RiskCalculation');
         $hideWeightsAndScore = $fields->dataFieldByName('HideRiskWeightsAndScore');
+        $stakeholdersGroupField = $fields->dataFieldByName('StakeholdersGroup');
 
         $fields->removeByName([
             'TaskType',
@@ -169,7 +175,8 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
             'DefaultSecurityComponents',
             'Questionnaires',
             'AnswerActionFields',
-            'HideRiskWeightsAndScore'
+            'HideRiskWeightsAndScore',
+            'StakeholdersGroup'
         ]);
 
         $fields->insertAfter(
@@ -239,6 +246,25 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
                 $fields
                     ->dataFieldByName('ApprovalGroupID')
                     ->setDescription('Please select the task approval group.'),
+                OptionsetField::create(
+                    'SendEmailsToStakeholders',
+                    'Email Stakeholders when task is ready for review (Complete or Awaiting Approval)?',
+                    $this->dbObject('SendEmailsToStakeholders')->enumValues()
+                )->setDescription(
+                    sprintf(
+                        '<p>If this is not set, emails will not'
+                        . ' be sent to the selected stakeholders group.</p>'
+                        . '<p>Please click on the <a href="%s"> Email Format Link </a>'
+                        . 'to add and edit the email format.</p>',
+                        $this->getTaskEmailLink()
+                    )
+                ),
+                ListboxField::create('StakeholdersGroup', 'Stakeholders group')
+                    ->setSource(Group::get())
+                    ->setValue(Group::get()->find('Code', UserGroupConstant::GROUP_CODE_SA)->ID)
+                    ->displayIf('SendEmailsToStakeholders')
+                    ->isEqualTo('Yes')
+                    ->end()
             ]
         );
 
@@ -362,6 +388,24 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
         );
 
         return $usedOnGridfield;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTaskEmailLink()
+    {
+        $taskEmail = $this->SubmissionEmails()->first();
+        $taskID = $this->ID;
+
+        if ($taskEmail) {
+            $emailId = $taskEmail->ID;
+            $link = sprintf('admin/questionnaire-admin/NZTA-SDLT-Model-Task/EditForm/field/NZTA-SDLT-Model-Task/item/%d/ItemEditForm/field/SubmissionEmails/item/%d', $taskID, $emailId);
+        } else {
+             $link = sprintf('admin/questionnaire-admin/NZTA-SDLT-Model-Task/EditForm/field/NZTA-SDLT-Model-Task/item/%d/ItemEditForm/field/SubmissionEmails/item/new', $taskID);
+        }
+
+        return $link;
     }
 
     /**
@@ -677,6 +721,11 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
                     $this->Name
                 )
             );
+        }
+
+        // validation for StakeholdersGroup
+        if ($this->SendEmailsToStakeholders == 'Yes' && !$this->StakeholdersGroup()->first()) {
+            $result->addError('Please select stakeholders group.');
         }
 
         return $result;

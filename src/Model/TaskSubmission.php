@@ -33,6 +33,7 @@ use SilverStripe\Control\Director;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use NZTA\SDLT\Job\SendTaskSubmissionEmailJob;
 use NZTA\SDLT\Job\SendTaskApprovalLinkEmailJob;
+use NZTA\SDLT\Job\SendTaskStakeholdersEmailJob;
 use SilverStripe\Forms\TextField;
 use NZTA\SDLT\Model\JiraTicket;
 use SilverStripe\Security\Group;
@@ -115,6 +116,7 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
         'JiraKey' => 'Varchar(255)',
         'IsApprovalRequired' => 'Boolean',
         'IsTaskApprovalLinkSent' => 'Boolean',
+        'IsStakeholdersEmailSent' => 'Boolean',
         'RiskResultData' => 'Text',
         'CVATaskData' => 'Text',
     ];
@@ -403,7 +405,8 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                     $taskApproverList
                 )->setEmptyString(' '),
                 $fields->dataFieldByName('ApprovalGroupID'),
-                $fields->dataFieldByName('IsTaskApprovalLinkSent '),
+                $fields->dataFieldByName('IsTaskApprovalLinkSent'),
+                $fields->dataFieldByName('IsStakeholdersEmailSent')
             ]
         );
 
@@ -868,7 +871,7 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                         $submission->SubmitterIPAddress = Convert::raw2sql($_SERVER['REMOTE_ADDR']);
                     }
 
-                    $submission->Status = TaskSubmission::STATUS_COMPLETE;
+                    $submission->setStatusToComplete();
 
                     // if task approval requires then set status to waiting for approval
                     if ($submission->IsTaskApprovalRequired) {
@@ -925,7 +928,7 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                         throw new GraphQLAuthFailure();
                     }
 
-                    $submission->Status = TaskSubmission::STATUS_COMPLETE;
+                    $submission->setStatusToComplete();
                     $submission->RiskResultData = $submission->getRiskResultBasedOnAnswer();
 
                     // if task approval requires then set status to waiting for approval
@@ -967,8 +970,35 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
     }
 
     /**
+     * set task submission status to complete and send emai to the stakeholder
+     * @return void
+     */
+    public function setStatusToComplete() : void
+    {
+        $this->Status = TaskSubmission::STATUS_COMPLETE;
+
+        if ($this->Task()->SendEmailsToStakeholders == 'Yes' && !$this->IsStakeholdersEmailSent) {
+            $groups = $this->Task()->StakeholdersGroup();
+            $members = array();
+            if ($groups) {
+                foreach ($groups as $group) {
+                    foreach($group->Members() as $member) {
+                        array_push($members, $member);
+                    }
+                }
+            }
+            $this->IsStakeholdersEmailSent = 1;
+            $queuedJobService = QueuedJobService::create();
+            $queuedJobService->queueJob(
+                new SendTaskStakeholdersEmailJob($this, $members),
+                date('Y-m-d H:i:s', time() + 30)
+            );
+        }
+    }
+
+    /**
      * set task submission status to waitig for approval
-     * and send emai lto the approver
+     * and send emai lto the approver and stakeholder
      * @return void
      */
     public function setStatusToWatingforApproval() : void
@@ -988,6 +1018,24 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                     date('Y-m-d H:i:s', time() + 30)
                 );
             }
+        }
+
+        if ($this->Task()->SendEmailsToStakeholders == 'Yes' && !$this->IsStakeholdersEmailSent) {
+            $groups = $this->Task()->StakeholdersGroup();
+            $members = array();
+            if ($groups) {
+                foreach ($groups as $group) {
+                    foreach($group->Members() as $member) {
+                        array_push($members, $member);
+                    }
+                }
+            }
+            $this->IsStakeholdersEmailSent = 1;
+            $queuedJobService = QueuedJobService::create();
+            $queuedJobService->queueJob(
+                new SendTaskStakeholdersEmailJob($this, $members),
+                date('Y-m-d H:i:s', time() + 30)
+            );
         }
     }
 

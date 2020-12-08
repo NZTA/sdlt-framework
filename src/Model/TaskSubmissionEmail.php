@@ -42,6 +42,8 @@ class TaskSubmissionEmail extends DataObject
         'LinkPrefix' => 'Varchar(32)',
         'ApprovalLinkEmailSubject' => 'Text',
         'ApprovalLinkEmailBody' => 'HTMLText',
+        'StakeholdersEmailSubject' => 'Text',
+        'StakeholdersEmailBody' => 'HTMLText',
     ];
 
     /**
@@ -97,6 +99,17 @@ class TaskSubmissionEmail extends DataObject
                     ." {\$submitterName}, and {\$submitterEmail}. They will be "
                     ." replaced with the actual value."),
                 HtmlEditorField::create('ApprovalLinkEmailBody', "Approver Email Body")
+                    ->setRows('3')
+                    ->setDescription("You may use any of the following variables in"
+                    ." the body of your email: {\$taskName}, {\$taskLink}, {\$productName}, "
+                    ." {\$submitterName}, and {\$submitterEmail}. They will be "
+                    ." replaced with the actual value."),
+                TextField::create('StakeholdersEmailSubject', "Stakeholders Email Subject")
+                    ->setDescription("You may use any of the following variables in"
+                    ." the subject of your email: {\$taskName}, {\$taskLink}, {\$productName}, "
+                    ." {\$submitterName}, and {\$submitterEmail}. They will be "
+                    ." replaced with the actual value."),
+                HtmlEditorField::create('StakeholdersEmailBody', "Stakeholders Email Body")
                     ->setRows('3')
                     ->setDescription("You may use any of the following variables in"
                     ." the body of your email: {\$taskName}, {\$taskLink}, {\$productName}, "
