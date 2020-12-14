@@ -74,14 +74,14 @@ class SendTaskSubmissionEmailJob extends AbstractQueuedJob implements QueuedJob
     public function sendEmail($name = '', $toEmail = '')
     {
         foreach ($this->taskSubmission->Task()->SubmissionEmails() as $emailDetails) {
-            $sub = $this->taskSubmission->replaceVariable($emailDetails->EmailSubject);
+            $sub = $this->taskSubmission->replaceVariable($emailDetails->SubmitterEmailSubject);
             $from = $emailDetails->FromEmailAddress;
 
             $email = Email::create()
                 ->setHTMLTemplate('Email\\EmailTemplate')
                 ->setData([
                     'Name' => $name,
-                    'Body' => $this->taskSubmission->replaceVariable($emailDetails->EmailBody, $emailDetails->LinkPrefix),
+                    'Body' => $this->taskSubmission->replaceVariable($emailDetails->SubmitterEmailBody, $emailDetails->LinkPrefix),
                     'EmailSignature' => $emailDetails->EmailSignature
                 ])
                 ->setFrom($from)

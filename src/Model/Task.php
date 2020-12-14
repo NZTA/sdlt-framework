@@ -23,7 +23,6 @@ use NZTA\SDLT\Model\RiskRating;
 use NZTA\SDLT\Model\TaskSubmission;
 use NZTA\SDLT\Traits\SDLTModelPermissions;
 use NZTA\SDLT\Traits\SDLTRiskCalc;
-use NZTA\SDLT\Constant\UserGroupConstant;
 use NZTA\SDLT\Model\TaskSubmissionEmail;
 use SilverStripe\Forms\DropdownField;
 use SilverStripe\Forms\FieldList;
@@ -87,7 +86,7 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
         'TaskType' => 'Enum(array("questionnaire", "selection", "risk questionnaire", "security risk assessment", "control validation audit"))',
         'LockAnswersWhenComplete' => 'Boolean',
         'IsApprovalRequired' => 'Boolean',
-        'SendEmailsToStakeholders' => "Enum('No,Yes', 'No')",
+        'IsStakeholdersSelected' => "Enum('No,Yes', 'No')",
         'RiskCalculation' => "Enum('NztaApproxRepresentation,Maximum')",
         'ComponentTarget' => "Enum('JIRA Cloud,Local')", // when task type is SRA
         'HideRiskWeightsAndScore' => 'Boolean' // when task type is risk questionnaire
@@ -98,6 +97,7 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
      */
     private static $has_one = [
         'ApprovalGroup' => Group::class,
+        'StakeholdersGroup' => Group::class,
         //this is a task of type "risk questionnaire" to grab question data from
         //it must be filtered to RiskQuestionnaires only, and is required
         'RiskQuestionnaireDataSource' => Task::class
@@ -126,7 +126,6 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
      */
     private static $many_many = [
         'DefaultSecurityComponents' => SecurityComponent::class,
-        'StakeholdersGroup' => Group::class
     ];
 
     /**
@@ -164,7 +163,6 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
         $typeField = $fields->dataFieldByName('TaskType');
         $riskField = $fields->dataFieldByName('RiskCalculation');
         $hideWeightsAndScore = $fields->dataFieldByName('HideRiskWeightsAndScore');
-        $stakeholdersGroupField = $fields->dataFieldByName('StakeholdersGroup');
 
         $fields->removeByName([
             'TaskType',
@@ -175,8 +173,7 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
             'DefaultSecurityComponents',
             'Questionnaires',
             'AnswerActionFields',
-            'HideRiskWeightsAndScore',
-            'StakeholdersGroup'
+            'HideRiskWeightsAndScore'
         ]);
 
         $fields->insertAfter(
@@ -247,9 +244,9 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
                     ->dataFieldByName('ApprovalGroupID')
                     ->setDescription('Please select the task approval group.'),
                 OptionsetField::create(
-                    'SendEmailsToStakeholders',
+                    'IsStakeholdersSelected',
                     'Email Stakeholders when task is ready for review (Complete or Awaiting Approval)?',
-                    $this->dbObject('SendEmailsToStakeholders')->enumValues()
+                    $this->dbObject('IsStakeholdersSelected')->enumValues()
                 )->setDescription(
                     sprintf(
                         '<p>If this is not set, emails will not'
@@ -259,10 +256,9 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
                         $this->getTaskEmailLink()
                     )
                 ),
-                ListboxField::create('StakeholdersGroup', 'Stakeholders group')
-                    ->setSource(Group::get())
-                    ->setValue(Group::get()->find('Code', UserGroupConstant::GROUP_CODE_SA)->ID)
-                    ->displayIf('SendEmailsToStakeholders')
+                $fields
+                    ->dataFieldByName('StakeholdersGroupID')
+                    ->displayIf('IsStakeholdersSelected')
                     ->isEqualTo('Yes')
                     ->end()
             ]
@@ -724,7 +720,7 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
         }
 
         // validation for StakeholdersGroup
-        if ($this->SendEmailsToStakeholders == 'Yes' && !$this->StakeholdersGroup()->first()) {
+        if ($this->IsStakeholdersSelected == 'Yes' && !$this->StakeholdersGroupID) {
             $result->addError('Please select stakeholders group.');
         }
 

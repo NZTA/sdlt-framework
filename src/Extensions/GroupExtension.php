@@ -16,7 +16,6 @@ namespace NZTA\SDLT\Extension;
 use SilverStripe\ORM\DataExtension;
 use SilverStripe\Security\Group;
 use NZTA\SDLT\Model\Questionnaire;
-use NZTA\SDLT\Model\Task;
 
 /**
  * Class GroupExtension
@@ -28,7 +27,6 @@ class GroupExtension extends DataExtension
      */
     private static $belongs_many_many = [
         'Questionnaires' => Questionnaire::class,
-        'Tasks' => Task::class
     ];
 
     /**
