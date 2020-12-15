@@ -788,6 +788,12 @@ class QuestionnaireSubmission extends DataObject implements ScaffoldingProvider
             })
             ->end();
 
+        // get Collaborators
+        $submissionScaffolder
+            ->nestedQuery('Collaborators')
+            ->setUsePagination(false)
+            ->end();
+
         $submissionScaffolder
             ->operation(SchemaScaffolder::READ)
             ->setName('readQuestionnaireSubmission')
