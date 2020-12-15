@@ -144,6 +144,13 @@ class QuestionnaireSubmission extends DataObject implements ScaffoldingProvider
     /**
      * @var array
      */
+    private static $many_many = [
+        'Collaborators' => Member::class,
+    ];
+
+    /**
+     * @var array
+     */
     private static $summary_fields = [
         'QuestionnaireName' => 'Questionnaire Name',
         'QuestionnaireType' => 'Questionnaire Type',
