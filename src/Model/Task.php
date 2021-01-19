@@ -23,7 +23,7 @@ use NZTA\SDLT\Model\RiskRating;
 use NZTA\SDLT\Model\TaskSubmission;
 use NZTA\SDLT\Traits\SDLTModelPermissions;
 use NZTA\SDLT\Traits\SDLTRiskCalc;
-use NZTA\SDLT\Model\TaskSubmissionEmail;
+use NZTA\SDLT\Model\TaskEmail;
 use SilverStripe\Forms\DropdownField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\GridField\GridField;
@@ -108,7 +108,6 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
      */
     private static $has_many = [
         'Questions' => Question::class,
-        'SubmissionEmails' => TaskSubmissionEmail::class,
         'LikelihoodThresholds' => LikelihoodThreshold::class, // when task type is SRA
         'RiskRatings' => RiskRating::class, // when task type is SRA
     ];
@@ -391,14 +390,13 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
      */
     public function getTaskEmailLink()
     {
-        $taskEmail = $this->SubmissionEmails()->first();
-        $taskID = $this->ID;
+        $taskEmail = TaskEmail::get()->first();
 
         if ($taskEmail) {
             $emailId = $taskEmail->ID;
-            $link = sprintf('admin/questionnaire-admin/NZTA-SDLT-Model-Task/EditForm/field/NZTA-SDLT-Model-Task/item/%d/ItemEditForm/field/SubmissionEmails/item/%d', $taskID, $emailId);
+            $link = sprintf('admin/questionnaire-admin/NZTA-SDLT-Model-TaskEmail/EditForm/field/NZTA-SDLT-Model-TaskEmail/item/%d', $emailId);
         } else {
-             $link = sprintf('admin/questionnaire-admin/NZTA-SDLT-Model-Task/EditForm/field/NZTA-SDLT-Model-Task/item/%d/ItemEditForm/field/SubmissionEmails/item/new', $taskID);
+             $link = 'admin/questionnaire-admin/NZTA-SDLT-Model-TaskEmail/EditForm/field/NZTA-SDLT-Model-TaskEmail/item/new';
         }
 
         return $link;
@@ -807,7 +805,6 @@ class Task extends DataObject implements ScaffoldingProvider, PermissionProvider
         //remove fields not required for CVA task
         $fields->removeByName([
             'Questions',
-            'SubmissionEmails',
             'IsApprovalRequired',
             'ApprovalGroupID',
             'KeyInformation',
