@@ -16,6 +16,7 @@ namespace NZTA\SDLT\ModelAdmin;
 use NZTA\SDLT\Model\Task;
 use NZTA\SDLT\Model\Questionnaire;
 use NZTA\SDLT\Model\QuestionnaireEmail;
+use NZTA\SDLT\Model\TaskEmail;
 use NZTA\SDLT\Model\Dashboard;
 use NZTA\SDLT\Model\Risk;
 use NZTA\SDLT\Model\ImpactThreshold;
@@ -46,6 +47,7 @@ class QuestionnaireAdmin extends ModelAdmin
         Questionnaire::class,
         Task::class,
         QuestionnaireEmail::class,
+        TaskEmail::class,
         Risk::class,
         ImpactThreshold::class,
     ];

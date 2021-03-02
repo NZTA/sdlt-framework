@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This file contains the "QuestionnaireEmail" class.
+ * This file contains the "TaskEmail" class.
  *
  * @category SilverStripe_Project
  * @package SDLT
@@ -21,16 +21,18 @@ use SilverStripe\Forms\FormField;
 use SilverStripe\Control\Director;
 use NZTA\SDLT\Model\TaskSubmission;
 use SilverStripe\Forms\EmailField;
+use NZTA\SDLT\Traits\SDLTModelPermissions;
 
 /**
- * Class TaskSubmissionEmail
+ * Class TaskEmail
  */
-class TaskSubmissionEmail extends DataObject
+class TaskEmail extends DataObject
 {
+    use SDLTModelPermissions;
     /**
      * @var string
      */
-    private static $table_name = 'TaskSubmissionEmail';
+     private static $table_name = 'TaskEmail';
 
     /**
      * @var array
@@ -55,16 +57,7 @@ class TaskSubmissionEmail extends DataObject
     private static $summary_fields = [
         'Label' => 'Label',
         'FromEmailAddress' => 'From Email Address',
-        'SubmitterEmailSubject' => 'Submitter Email Subject',
         'LinkPrefix' => 'Link Prefix',
-    ];
-
-    /**
-     *
-     * @var array
-     */
-    private static $has_one = [
-        'Owner' => Task::class
     ];
 
     /**

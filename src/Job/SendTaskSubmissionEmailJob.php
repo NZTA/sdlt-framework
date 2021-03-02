@@ -18,7 +18,7 @@ use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\Services\QueuedJob;
 use SilverStripe\Security\Member;
-use NZTA\SDLT\Model\QuestionnaireEmail;
+use NZTA\SDLT\Model\TaskEmail;
 
 /**
  * A QueuedJob is specifically designed to be invoked from an onAfterWrite() process
@@ -73,22 +73,21 @@ class SendTaskSubmissionEmailJob extends AbstractQueuedJob implements QueuedJob
      */
     public function sendEmail($name = '', $toEmail = '')
     {
-        foreach ($this->taskSubmission->Task()->SubmissionEmails() as $emailDetails) {
-            $sub = $this->taskSubmission->replaceVariable($emailDetails->SubmitterEmailSubject);
-            $from = $emailDetails->FromEmailAddress;
+        $emailDetails = TaskEmail::get()->first();
+        $sub = $this->taskSubmission->replaceVariable($emailDetails->SubmitterEmailSubject);
+        $from = $emailDetails->FromEmailAddress;
 
-            $email = Email::create()
-                ->setHTMLTemplate('Email\\EmailTemplate')
-                ->setData([
-                    'Name' => $name,
-                    'Body' => $this->taskSubmission->replaceVariable($emailDetails->SubmitterEmailBody, $emailDetails->LinkPrefix),
-                    'EmailSignature' => $emailDetails->EmailSignature
-                ])
-                ->setFrom($from)
-                ->setTo($toEmail)
-                ->setSubject($sub);
+        $email = Email::create()
+            ->setHTMLTemplate('Email\\EmailTemplate')
+            ->setData([
+                'Name' => $name,
+                'Body' => $this->taskSubmission->replaceVariable($emailDetails->SubmitterEmailBody, $emailDetails->LinkPrefix),
+                'EmailSignature' => $emailDetails->EmailSignature
+            ])
+            ->setFrom($from)
+            ->setTo($toEmail)
+            ->setSubject($sub);
 
-            $email->send();
-        }
+        $email->send();
     }
 }

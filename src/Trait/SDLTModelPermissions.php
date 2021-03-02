@@ -51,6 +51,10 @@ trait SDLTModelPermissions
             return (parent::canCreate($member) && QuestionnaireEmail::get()->Count() === 0);
         }
 
+        if ($this instanceof TaskEmail) {
+            return (parent::canCreate($member) && TaskEmail::get()->Count() === 0);
+        }
+
         return true;
     }
 
