@@ -1,0 +1,92 @@
+<?php
+
+/**
+ * This file contains the "SendTasksCompletedEmailJob" class.
+ *
+ * @category SilverStripe_Project
+ * @package SDLT
+ * @author  Catalyst I.T. SilverStripe Team 2018 <silverstripedev@catalyst.net.nz>
+ * @copyright NZ Transport Agency
+ * @license BSD-3
+ * @link https://www.catalyst.net.nz
+ */
+
+namespace NZTA\SDLT\Job;
+
+use SilverStripe\Control\Email\Email;
+use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
+use Symbiote\QueuedJobs\Services\QueuedJobService;
+use Symbiote\QueuedJobs\Services\QueuedJob;
+use NZTA\SDLT\Model\TaskEmail;
+
+/**
+ * A QueuedJob is specifically designed to be invoked from an onAfterWrite() process
+ */
+class SendTasksCompletedEmailJob extends AbstractQueuedJob implements QueuedJob
+{
+    /**
+     * @param TaskSubmission $taskSubmission taskSubmission
+     */
+    public function __construct($taskSubmission = null)
+    {
+        $this->taskSubmission = $taskSubmission;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTitle()
+    {
+        return sprintf(
+            'Initialising tasks completed email for - %s (%d)',
+            $this->taskSubmission->Task()->Name,
+            $this->taskSubmission->ID
+        );
+    }
+
+    /**
+     * {@inheritDoc}
+     * @return string
+     */
+    public function getJobType()
+    {
+        return QueuedJob::QUEUED;
+    }
+
+    /**
+     * @return mixed void | null
+     */
+    public function process()
+    {
+        $member = $this->taskSubmission->Submitter();
+        $this->sendEmail($member->FirstName, $member->Email);
+
+        $this->isComplete = true;
+    }
+
+    /**
+     * @param string $name    name
+     * @param string $toEmail to Email
+     *
+     * @return null
+     */
+    public function sendEmail($name = '', $toEmail = '')
+    {
+        $emailDetails = TaskEmail::get()->first();
+        $sub = $this->taskSubmission->replaceVariable($emailDetails->TasksCompletedEmailSubject);
+        $from = $emailDetails->FromEmailAddress;
+
+        $email = Email::create()
+            ->setHTMLTemplate('Email\\EmailTemplate')
+            ->setData([
+                'Name' => $name,
+                'Body' => $this->taskSubmission->replaceVariable($emailDetails->TasksCompletedEmailBody, $emailDetails->LinkPrefix),
+                'EmailSignature' => $emailDetails->EmailSignature
+            ])
+            ->setFrom($from)
+            ->setTo($toEmail)
+            ->setSubject($sub);
+
+        $email->send();
+    }
+}

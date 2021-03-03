@@ -48,6 +48,8 @@ class TaskEmail extends DataObject
         'ApprovalLinkEmailBody' => 'HTMLText',
         'StakeholdersEmailSubject' => 'Text',
         'StakeholdersEmailBody' => 'HTMLText',
+        'TasksCompletedEmailSubject' => 'Text',
+        'TasksCompletedEmailBody' => 'HTMLText',
     ];
 
     /**
@@ -79,7 +81,9 @@ class TaskEmail extends DataObject
             'ApprovalLinkEmailSubject',
             'ApprovalLinkEmailBody',
             'StakeholdersEmailSubject',
-            'StakeholdersEmailBody'
+            'StakeholdersEmailBody',
+            'TasksCompletedEmailSubject',
+            'TasksCompletedEmailBody'
         ]);
 
         $fields->addFieldsToTab(
@@ -144,6 +148,23 @@ class TaskEmail extends DataObject
                             ->setDescription("You may use any of the following variables in"
                             ." the body of your email: {\$taskName}, {\$taskLink}, {\$productName}, "
                             ." {\$submitterName}, and {\$submitterEmail}. They will be "
+                            ." replaced with the actual value."),
+                    ]
+                ),
+                ToggleCompositeField::create(
+                    "tasksCompletedEmail",
+                    FormField::name_to_label("Tasks Completed Email"),
+                    [
+                        TextField::create('TasksCompletedEmailSubject', "Tasks Completed Email Subject")
+                            ->setDescription("You may use any of the following variables in"
+                            ." the subject of your email: {\$taskName}, {\$taskLink}, {\$questionnaireLink},, "
+                            ." {\$productName}, {\$submitterName}, and {\$submitterEmail}. They will be "
+                            ." replaced with the actual value."),
+                        HtmlEditorField::create('TasksCompletedEmailBody', "Tasks Completed Email Body")
+                            ->setRows('3')
+                            ->setDescription("You may use any of the following variables in"
+                            ." the body of your email: {\$taskName}, {\$taskLink}, {\$questionnaireLink}, "
+                            ." {\$productName}, {\$submitterName}, and {\$submitterEmail}. They will be "
                             ." replaced with the actual value."),
                     ]
                 ),
