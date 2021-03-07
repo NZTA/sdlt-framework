@@ -15,19 +15,14 @@ namespace NZTA\SDLT\Page;
 
 use NZTA\SDLT\Model\Pillar;
 use Page;
+use SilverStripe\CMS\Model\SiteTree;
 use NZTA\SDLT\Controller\HomePageController;
 use NZTA\SDLT\Model\Task;
 use SilverStripe\ORM\ValidationException;
-use SilverStripe\Security\Member;
-use SilverStripe\Security\Permission;
-use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\ORM\DB;
 use SilverStripe\CMS\Controllers\RootURLController;
 use SilverStripe\Versioned\Versioned;
-use SilverStripe\Forms\TextField;
-use SilverStripe\Forms\GridField\GridField;
-use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
-use SilverStripe\ORM\DataObject;
+use SilverStripe\ErrorPage\ErrorPage;
 
 /**
  * Class HomePage
@@ -90,7 +85,12 @@ class HomePage extends Page
             if (!SiteTree::get_by_link($defaultHomepage)) {
                 $homepage = new HomePage();
                 $homepage->Title = _t(__CLASS__.'.DEFAULTHOMETITLE', 'Home');
-                $homepage->Content = _t(__CLASS__.'.DEFAULTHOMECONTENT', '<p>Welcome to SilverStripe! This is the default homepage. You can edit this page by opening <a href="admin/">the CMS</a>.</p><p>You can now access the <a href="http://docs.silverstripe.org">developer documentation</a>, or begin the <a href="http://www.silverstripe.org/learn/lessons">SilverStripe lessons</a>.</p>');
+                $homepage->Content = _t(__CLASS__.'.DEFAULTHOMECONTENT',
+                    '<p>Welcome to SilverStripe! This is the default homepage.
+                    You can edit this page by opening <a href="admin/">the CMS</a>.</p>
+                    <p>You can now access the <a href="http://docs.silverstripe.org">developer documentation</a>,
+                    or begin the <a href="http://www.silverstripe.org/learn/lessons">SilverStripe lessons</a>.</p>'
+                );
                 $homepage->URLSegment = $defaultHomepage;
                 $homepage->Sort = 1;
                 $homepage->write();
@@ -98,6 +98,15 @@ class HomePage extends Page
                 $homepage->flushCache();
                 DB::alteration_message('Home page created', 'created');
             }
+        }
+        if (!(ErrorPage::get()->Count())) {
+            $errorpage = new ErrorPage();
+            $errorpage->Title = 'Error Page';
+            $errorpage->ErrorCode = 404;
+            $errorpage->write();
+            $errorpage->copyVersionToStage(Versioned::DRAFT, Versioned::LIVE);
+            $errorpage->flushCache();
+            DB::alteration_message('Default Error page created', 'created');
         }
     }
 }
