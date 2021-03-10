@@ -98,6 +98,8 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
      */
     private $securityRiskAssessmentData = '';
 
+    private $CanUpdateTask = false;
+
     /**
      * @var array
      */
@@ -124,6 +126,7 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
      */
     private static $has_one = [
         'Submitter' => Member::class,
+        'completedBy' => Member::class,
         'TaskApprover' => Member::class,
         'Task' => Task::class,
         'QuestionnaireSubmission' => QuestionnaireSubmission::class,
@@ -197,6 +200,18 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
             return "";
         }
         return $task->Name;
+    }
+
+
+
+    public function getCanUpdateTask()
+    {
+        return $this->CanUpdateTask;
+    }
+
+    public function setCanUpdateTask($canEdit)
+    {
+        return $this->CanUpdateTask = $canEdit;
     }
 
     /**
@@ -390,6 +405,13 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                     Member::get()->map('ID', 'Name')
                 )->setEmptyString(' '),
                 $fields->dataFieldByName('SubmitterIPAddress'),
+                DropdownField::create(
+                    'completedByID',
+                    'Completed By',
+                    Member::get()->map('ID', 'Name')
+                )
+                ->setDescription('Task can be completed by submitter or collaborators.')
+                ->setEmptyString(' ')
             ]
         );
 
@@ -487,7 +509,9 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                 'CVATaskDataSource',
                 'SecurityRiskAssessmentData',
                 'Created',
-                'HideWeightsAndScore'
+                'HideWeightsAndScore',
+                'CanUpdateTask',
+                'IsTaskCollborator'
             ]);
 
         $dataObjectScaffolder
@@ -759,6 +783,7 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                     $allAnswerData[$args['QuestionID']] = $questionAnswerData;
                     $submission->AnswerData = json_encode($allAnswerData);
                     $submission->Status = TaskSubmission::STATUS_IN_PROGRESS;
+                    $submission->completedByID = (int)Security::getCurrentUser()->ID;
 
                     $submission->write();
 
@@ -1118,8 +1143,16 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                             throw new GraphQLAuthFailure();
                         }
 
+                        // $canEdit = TaskSubmission::can_edit_task_submission(
+                        //     $data,
+                        //     $member,
+                        //     $secureToken
+                        // );
+
                         $data->ProductAspects = $data->QuestionnaireSubmissionID ?
                             $data->QuestionnaireSubmission()->getProductAspects(): '{}';
+
+                        //$data->setCanUpdateTask($canEdit);
 
                         if ($data->TaskType === 'security risk assessment') {
                             $data->SecurityRiskAssessmentData = $data->calculateSecurityRiskAssessmentData();
@@ -1326,6 +1359,7 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
             return true;
         }
 
+
         // Correct SecureToken can view it
         if ($taskSubmission->SecureToken && @hash_equals($taskSubmission->SecureToken, $secureToken)) {
             return true;
@@ -1364,8 +1398,10 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                 ->filter('Code', UserGroupConstant::GROUP_CODE_SA)
                 ->exists();
 
+            $isCollborator = $taskSubmission->getIsTaskCollborator();
+
             // Submitter can edit when answers are not locked
-            if ($isSubmitter) {
+            if ($isSubmitter || $isCollborator) {
                 if ($taskSubmission->Status === TaskSubmission::STATUS_IN_PROGRESS ||
                     $taskSubmission->Status === TaskSubmission::STATUS_START ||
                     $taskSubmission->Status === TaskSubmission::STATUS_DENIED) {
@@ -2300,6 +2336,27 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
     public function getHideWeightsAndScore() : bool
     {
         if ($this->Task()->isRiskType() && $this->Task()->HideRiskWeightsAndScore) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function getIsTaskCollborator() : bool
+    {
+        $member = Security::getCurrentUser();
+
+        if (!$member || $member == null) {
+            return false;
+        }
+
+        $collboratorIDs = $this->QuestionnaireSubmission()->Collaborators()->column('ID');
+
+        if (empty($collboratorIDs)) {
+            return false;
+        }
+
+        if (in_array($member->ID, $collboratorIDs)) {
             return true;
         }
 
