@@ -14,7 +14,7 @@
 namespace NZTA\SDLT\Email;
 
 use SilverStripe\Control\Email\Email;
-use NZTA\SDLT\Model\QuestionnaireEmail;
+use SilverStripe\SiteConfig\SiteConfig;
 use NZTA\SDLT\Constant\UserGroupConstant;
 use SilverStripe\Security\Member;
 
@@ -80,25 +80,27 @@ class SendApprovalLinkEmail
      */
     public function sendEmail($name = '', $toEmail = '', $isBusinessOwner = false, $memberRole)
     {
-        $emailDetails = QuestionnaireEmail::get()->first();
-        $subjField = "{$memberRole}ApprovalLinkEmailSubject";
-        $bodyField = "{$memberRole}ApprovalLinkEmailBody";
-        $subject = $this->replaceVariable($emailDetails->$subjField, $isBusinessOwner);
-        $body = $this->replaceVariable($emailDetails->$bodyField, $isBusinessOwner);
-        $from = $emailDetails->FromEmailAddress;
-        $email = Email::create()
-            ->setHTMLTemplate('Email\\EmailTemplate')
-            ->setData([
-                'Name' => $name,
-                'Body' => $body,
-                'EmailSignature' => $emailDetails->EmailSignature
+        $emailDetails = SiteConfig::current_site_config()->QuestionnaireEmail();
+        if ($emailDetails && $emailDetails->ID) {
+            $subjField = "{$memberRole}ApprovalLinkEmailSubject";
+            $bodyField = "{$memberRole}ApprovalLinkEmailBody";
+            $subject = $this->replaceVariable($emailDetails->$subjField, $isBusinessOwner);
+            $body = $this->replaceVariable($emailDetails->$bodyField, $isBusinessOwner);
+            $from = $emailDetails->FromEmailAddress;
+            $email = Email::create()
+                ->setHTMLTemplate('Email\\EmailTemplate')
+                ->setData([
+                    'Name' => $name,
+                    'Body' => $body,
+                    'EmailSignature' => $emailDetails->EmailSignature
 
-            ])
-            ->setFrom($from)
-            ->setTo($toEmail)
-            ->setSubject($subject);
+                ])
+                ->setFrom($from)
+                ->setTo($toEmail)
+                ->setSubject($subject);
 
-        $email->send();
+            $email->send();
+        }
     }
 
     /**

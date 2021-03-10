@@ -18,7 +18,7 @@ use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\Services\QueuedJob;
 use SilverStripe\Security\Member;
-use NZTA\SDLT\Model\QuestionnaireEmail;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * A QueuedJob is specifically designed to be invoked from an onAfterWrite() process
@@ -59,27 +59,29 @@ class SendDeniedNotificationEmailJob extends AbstractQueuedJob implements Queued
      */
     public function process()
     {
-        $emailDetails = QuestionnaireEmail::get()->first();
-        $sub = $this->questionnaireSubmission->replaceVariable(
-            $emailDetails->DeniedNotificationEmailSubject
-        );
-        $from = $emailDetails->FromEmailAddress;
+        $emailDetails = SiteConfig::current_site_config()->QuestionnaireEmail();
+        if ($emailDetails && $emailDetails->ID) {
+            $sub = $this->questionnaireSubmission->replaceVariable(
+                $emailDetails->DeniedNotificationEmailSubject
+            );
+            $from = $emailDetails->FromEmailAddress;
 
-        $email = Email::create()
-            ->setHTMLTemplate('Email\\EmailTemplate')
-            ->setData([
-                'Name' => $this->questionnaireSubmission->SubmitterName,
-                'Body' =>$this->questionnaireSubmission->replaceVariable(
-                    $emailDetails->DeniedNotificationEmailBody
-                ),
-                'EmailSignature' => $emailDetails->EmailSignature
-            ])
-            ->setFrom($from)
-            ->setTo($this->questionnaireSubmission->SubmitterEmail)
-            ->setSubject($sub);
+            $email = Email::create()
+                ->setHTMLTemplate('Email\\EmailTemplate')
+                ->setData([
+                    'Name' => $this->questionnaireSubmission->SubmitterName,
+                    'Body' =>$this->questionnaireSubmission->replaceVariable(
+                        $emailDetails->DeniedNotificationEmailBody
+                    ),
+                    'EmailSignature' => $emailDetails->EmailSignature
+                ])
+                ->setFrom($from)
+                ->setTo($this->questionnaireSubmission->SubmitterEmail)
+                ->setSubject($sub);
 
-        $email->send();
+            $email->send();
 
-        $this->isComplete = true;
+            $this->isComplete = true;
+        }
     }
 }

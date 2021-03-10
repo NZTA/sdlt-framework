@@ -67,30 +67,32 @@ class SendExportJsonDataEmailJob extends AbstractQueuedJob implements QueuedJob
      */
     public function process()
     {
-        $config = SiteConfig::current_site_config();
-        $sub = $this->replaceVariable(
-            $config->DataExportEmailSubject
-        );
-        $body = $this->replaceVariable(
-            $config->DataExportEmailBody
-        );
-        $from = $config->FromEmailAddress;
+        $dataExportEmail = SiteConfig::current_site_config()->DataExportEmail();
+        if ($dataExportEmail && $dataExportEmail->ID) {
+            $sub = $this->replaceVariable(
+                $dataExportEmail->DataExportEmailSubject
+            );
+            $body = $this->replaceVariable(
+                $dataExportEmail->DataExportEmailBody
+            );
+            $from = $dataExportEmail->FromEmailAddress;
 
-        $email = Email::create()
-            ->setHTMLTemplate('Email\\EmailTemplate')
-            ->setData([
-                'Name' => $this->userName,
-                'Body' => $body,
-                'EmailSignature' => $config->EmailSignature
-            ])
-            ->setFrom($from)
-            ->setTo($this->userEmail)
-            ->setSubject($sub)
-            ->addAttachmentFromData($this->jsonData, $this->fileName, 'text/json');
+            $email = Email::create()
+                ->setHTMLTemplate('Email\\EmailTemplate')
+                ->setData([
+                    'Name' => $this->userName,
+                    'Body' => $body,
+                    'EmailSignature' => $dataExportEmail->EmailSignature
+                ])
+                ->setFrom($from)
+                ->setTo($this->userEmail)
+                ->setSubject($sub)
+                ->addAttachmentFromData($this->jsonData, $this->fileName, 'text/json');
 
-        $email->send();
+            $email->send();
 
-        $this->isComplete = true;
+            $this->isComplete = true;
+        }
     }
 
     /**

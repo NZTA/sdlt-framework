@@ -46,11 +46,6 @@ trait SDLTModelPermissions
             return false;
         }
 
-        // Ensure that only a single home is able to be created in the CMS
-        if ($this instanceof QuestionnaireEmail) {
-            return (parent::canCreate($member) && QuestionnaireEmail::get()->Count() === 0);
-        }
-
         return true;
     }
 

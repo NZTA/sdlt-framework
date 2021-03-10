@@ -17,7 +17,7 @@ use SilverStripe\Control\Email\Email;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\Services\QueuedJob;
-use NZTA\SDLT\Model\QuestionnaireEmail;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * A QueuedJob is specifically designed to be invoked from an onAfterWrite() process
@@ -60,29 +60,30 @@ class SendSummaryPageLinkEmailJob extends AbstractQueuedJob implements QueuedJob
      */
     public function process()
     {
-        $emailDetails = QuestionnaireEmail::get()->first();
+        $emailDetails = SiteConfig::current_site_config()->QuestionnaireEmail();
+        if ($emailDetails && $emailDetails->ID) {
+            $sub = $this->questionnaireSubmission->replaceVariable(
+                $emailDetails->SummaryLinkEmailSubject
+            );
+            $from = $emailDetails->FromEmailAddress;
+            $to = $this->questionnaireSubmission->SubmitterEmail;
 
-        $sub = $this->questionnaireSubmission->replaceVariable(
-            $emailDetails->SummaryLinkEmailSubject
-        );
-        $from = $emailDetails->FromEmailAddress;
-        $to = $this->questionnaireSubmission->SubmitterEmail;
+            $email = Email::create()
+                ->setHTMLTemplate('Email\\EmailTemplate')
+                ->setData([
+                    'Name' => $this->questionnaireSubmission->SubmitterName,
+                    'Body' => $this->questionnaireSubmission->replaceVariable(
+                        $emailDetails->SummaryLinkEmailBody
+                    ),
+                    'EmailSignature' => $emailDetails->EmailSignature
+                ])
+                ->setFrom($from)
+                ->setTo($to)
+                ->setSubject($sub);
 
-        $email = Email::create()
-            ->setHTMLTemplate('Email\\EmailTemplate')
-            ->setData([
-                'Name' => $this->questionnaireSubmission->SubmitterName,
-                'Body' => $this->questionnaireSubmission->replaceVariable(
-                    $emailDetails->SummaryLinkEmailBody
-                ),
-                'EmailSignature' => $emailDetails->EmailSignature
-            ])
-            ->setFrom($from)
-            ->setTo($to)
-            ->setSubject($sub);
+            $email->send();
 
-        $email->send();
-
-        $this->isComplete = true;
+            $this->isComplete = true;
+        }
     }
 }

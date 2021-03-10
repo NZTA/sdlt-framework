@@ -27,7 +27,7 @@ use SilverStripe\Forms\GridField\GridFieldAddExistingAutocompleter;
 use NZTA\SDLT\Traits\SDLTModelPermissions;
 use SilverStripe\Security\Permission;
 use NZTA\SDLT\ModelAdmin\QuestionnaireAdmin;
-use NZTA\SDLT\Model\QuestionnaireEmail;
+use SilverStripe\SiteConfig\SiteConfig;
 use NZTA\SDLT\Helper\Utils;
 use NZTA\SDLT\Traits\SDLTRiskCalc;
 use SilverStripe\Forms\CheckboxField;
@@ -354,12 +354,14 @@ class Questionnaire extends DataObject implements ScaffoldingProvider, Permissio
      */
     public function getQuestionaireEmailLink()
     {
-        $questionnaireEmail = QuestionnaireEmail::get()->first();
-        if ($questionnaireEmail) {
-            $id = $questionnaireEmail->ID;
-            $link = sprintf('admin/questionnaire-admin/NZTA-SDLT-Model-QuestionnaireEmail/EditForm/field/NZTA-SDLT-Model-QuestionnaireEmail/item/%d', $id);
+        $questionnaireEmail = SiteConfig::current_site_config()->QuestionnaireEmail();
+        if ($questionnaireEmail && $questionnaireEmail->ID) {
+            $link = sprintf(
+                'admin/settings/EditForm/field/QuestionnaireEmail/item/%d',
+                $questionnaireEmail->ID
+            );
         } else {
-            $link = 'admin/questionnaire-admin/NZTA-SDLT-Model-QuestionnaireEmail/EditForm/field/NZTA-SDLT-Model-QuestionnaireEmail/item/new';
+            $link = 'admin/settings/EditForm/field/QuestionnaireEmail/item/new';
         }
         return $link;
     }

@@ -17,7 +17,7 @@ use SilverStripe\Control\Email\Email;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\Services\QueuedJob;
-use NZTA\SDLT\Model\QuestionnaireEmail;
+use SilverStripe\SiteConfig\SiteConfig;
 use NZTA\SDLT\Model\QuestionnaireSubmission;
 use SilverStripe\ORM\ManyManyList;
 use SilverStripe\Security\Member;
@@ -82,29 +82,30 @@ class SendQuestionnaireSubmittedEmailJob extends AbstractQueuedJob implements Qu
      */
     public function sendEmail($name = '', $toEmail = '')
     {
-        $emailDetails = QuestionnaireEmail::get()->first();
+        $emailDetails = SiteConfig::current_site_config()->QuestionnaireEmail();
+        if ($emailDetails && $emailDetails->ID) {
+            $sub = $this->questionnaireSubmission->replaceVariable(
+                $emailDetails->QuestionnaireSubmittedEmailSubject
+            );
 
-        $sub = $this->questionnaireSubmission->replaceVariable(
-            $emailDetails->QuestionnaireSubmittedEmailSubject
-        );
+            $body = $this->questionnaireSubmission->replaceVariable(
+                $emailDetails->QuestionnaireSubmittedEmailBody
+            );
 
-        $body = $this->questionnaireSubmission->replaceVariable(
-            $emailDetails->QuestionnaireSubmittedEmailBody
-        );
+            $from = $emailDetails->FromEmailAddress;
 
-        $from = $emailDetails->FromEmailAddress;
+            $email = Email::create()
+                ->setHTMLTemplate('Email\\EmailTemplate')
+                ->setData([
+                    'Name' => $name,
+                    'Body' => $body,
+                    'EmailSignature' => $emailDetails->EmailSignature
+                ])
+                ->setFrom($from)
+                ->setTo($toEmail)
+                ->setSubject($sub);
 
-        $email = Email::create()
-            ->setHTMLTemplate('Email\\EmailTemplate')
-            ->setData([
-                'Name' => $name,
-                'Body' => $body,
-                'EmailSignature' => $emailDetails->EmailSignature
-            ])
-            ->setFrom($from)
-            ->setTo($toEmail)
-            ->setSubject($sub);
-
-        $email->send();
+            $email->send();
+        }
     }
 }

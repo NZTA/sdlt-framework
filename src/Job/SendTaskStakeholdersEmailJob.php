@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This file contains the "SendStartLinkEmailJob" class.
+ * This file contains the "SendTaskStakeholdersEmailJob" class.
  *
  * @category SilverStripe_Project
  * @package SDLT
@@ -17,19 +17,22 @@ use SilverStripe\Control\Email\Email;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
 use Symbiote\QueuedJobs\Services\QueuedJobService;
 use Symbiote\QueuedJobs\Services\QueuedJob;
+use SilverStripe\Security\Member;
 use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * A QueuedJob is specifically designed to be invoked from an onAfterWrite() process
  */
-class SendStartLinkEmailJob extends AbstractQueuedJob implements QueuedJob
+class SendTaskStakeholdersEmailJob extends AbstractQueuedJob implements QueuedJob
 {
     /**
-     * @param QuestionnaireSubmission $questionnaireSubmission $questionnaireSubmission
+     * @param TaskSubmission $taskSubmission taskSubmission
+     * @param Member         $members    member
      */
-    public function __construct($questionnaireSubmission = null)
+    public function __construct($taskSubmission = null, $members = [])
     {
-        $this->questionnaireSubmission = $questionnaireSubmission;
+        $this->taskSubmission = $taskSubmission;
+        $this->members = $members;
     }
 
     /**
@@ -38,9 +41,9 @@ class SendStartLinkEmailJob extends AbstractQueuedJob implements QueuedJob
     public function getTitle()
     {
         return sprintf(
-            'Initialising start link email %s (%d)',
-            $this->questionnaireSubmission->Questionnaire()->Name,
-            $this->questionnaireSubmission->ID
+            'Initialising task stakeholders email for - %s (%d)',
+            $this->taskSubmission->Task()->Name,
+            $this->taskSubmission->ID
         );
     }
 
@@ -58,31 +61,38 @@ class SendStartLinkEmailJob extends AbstractQueuedJob implements QueuedJob
      */
     public function process()
     {
-        $emailDetails = SiteConfig::current_site_config()->QuestionnaireEmail();
+        foreach ($this->members as $member) {
+            $this->sendEmail($member->FirstName, $member->Email);
+        }
+
+        $this->isComplete = true;
+    }
+
+    /**
+     * @param string $name    name
+     * @param string $toEmail to Email
+     *
+     * @return null
+     */
+    public function sendEmail($name = '', $toEmail = '')
+    {
+        $emailDetails = SiteConfig::current_site_config()->TaskEmail();
         if ($emailDetails && $emailDetails->ID) {
-            $sub = $this->questionnaireSubmission->replaceVariable(
-                $emailDetails->StartLinkEmailSubject
-            );
+            $sub = $this->taskSubmission->replaceVariable($emailDetails->StakeholdersEmailSubject);
             $from = $emailDetails->FromEmailAddress;
-            $to = $this->questionnaireSubmission->SubmitterEmail;
 
             $email = Email::create()
                 ->setHTMLTemplate('Email\\EmailTemplate')
                 ->setData([
-                    'SubmitterName' => $this->questionnaireSubmission->SubmitterName,
-                    'Body' =>$this->questionnaireSubmission->replaceVariable(
-                        $emailDetails->StartLinkEmailBody
-                    ),
+                    'Name' => $name,
+                    'Body' => $this->taskSubmission->replaceVariable($emailDetails->StakeholdersEmailBody, $emailDetails->LinkPrefix),
                     'EmailSignature' => $emailDetails->EmailSignature
                 ])
                 ->setFrom($from)
-                ->setTo($to)
+                ->setTo($toEmail)
                 ->setSubject($sub);
 
-
             $email->send();
-
-            $this->isComplete = true;
         }
     }
 }

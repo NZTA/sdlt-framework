@@ -20,7 +20,6 @@ use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\ToggleCompositeField;
 use SilverStripe\Forms\FormField;
 use SilverStripe\Forms\FieldList;
-use NZTA\SDLT\Traits\SDLTModelPermissions;
 use NZTA\SDLT\Constant\UserGroupConstant;
 
 /**
@@ -28,7 +27,6 @@ use NZTA\SDLT\Constant\UserGroupConstant;
  */
 class QuestionnaireEmail extends DataObject
 {
-    use SDLTModelPermissions;
     /**
      * @var string
      */

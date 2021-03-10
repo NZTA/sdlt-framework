@@ -20,6 +20,7 @@ use Symbiote\QueuedJobs\Services\QueuedJob;
 use SilverStripe\Security\Member;
 use NZTA\SDLT\Model\TaskSubmission;
 use NZTA\SDLT\Model\Task;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * A QueuedJob is specifically designed to be invoked from an onAfterWrite() process
@@ -77,9 +78,9 @@ class SendTaskApprovalLinkEmailJob extends AbstractQueuedJob implements QueuedJo
      */
     public function sendEmail($name = '', $toEmail = '')
     {
-        foreach ($this->taskSubmission->Task()->SubmissionEmails() as $emailDetails) {
+        $emailDetails = SiteConfig::current_site_config()->TaskEmail();
+        if ($emailDetails && $emailDetails->ID) {
             $sub = $this->taskSubmission->replaceVariable($emailDetails->ApprovalLinkEmailSubject);
-
             $from = $emailDetails->FromEmailAddress;
 
             $email = Email::create()
@@ -93,7 +94,7 @@ class SendTaskApprovalLinkEmailJob extends AbstractQueuedJob implements QueuedJo
                 ->setTo($toEmail)
                 ->setSubject($sub);
 
-            $email->send();
+                $email->send();
         }
     }
 }

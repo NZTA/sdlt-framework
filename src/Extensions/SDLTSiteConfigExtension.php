@@ -24,10 +24,11 @@ use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\HTMLEditor\HtmlEditorField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\Forms\LiteralField;
-use SilverStripe\Forms\ToggleCompositeField;
-use SilverStripe\Forms\FormField;
-use SilverStripe\Forms\EmailField;
 use SilverStripe\SiteConfig\SiteConfig;
+use NZTA\SDLT\Model\DataExportEmail;
+use NZTA\SDLT\Model\QuestionnaireEmail;
+use NZTA\SDLT\Model\TaskEmail;
+use SilverShop\HasOneField\HasOneButtonField;
 
 /**
  * Site Config Extension for SDLT Tool
@@ -42,12 +43,8 @@ class SDLTSiteConfigExtension extends DataExtension implements ScaffoldingProvid
         'AlertMessage' => 'HTMLText',
         'NoScriptAlertMessage' => 'HTMLText',
         'AlternateHostnameForEmail' => 'Varchar(255)',
-        'FromEmailAddress' => 'Varchar(255)',
-        'DataExportEmailSubject' => 'Text',
-        'DataExportEmailBody' => 'HTMLText',
-        'EmailSignature' => 'HTMLText',
         // Customisation Config
-        'FooterCopyrightText' => 'Text',
+        'FooterCopyrightText' => 'Text'
     ];
 
     /**
@@ -64,6 +61,9 @@ class SDLTSiteConfigExtension extends DataExtension implements ScaffoldingProvid
         'QuestionnairePdfHeaderImage' => Image::class,
         'QuestionnairePdfFooterImage' => Image::class,
         'FavIcon' => Image::class,
+        'DataExportEmail' => DataExportEmail::class,
+        'QuestionnaireEmail' => QuestionnaireEmail::class,
+        'TaskEmail' => TaskEmail::class
     ];
 
     /**
@@ -79,6 +79,9 @@ class SDLTSiteConfigExtension extends DataExtension implements ScaffoldingProvid
         'QuestionnairePdfHeaderImage',
         'QuestionnairePdfFooterImage',
         'FavIcon',
+        'DataExportEmail',
+        'QuestionnaireEmail',
+        'TaskEmail'
     ];
 
     /**
@@ -130,37 +133,9 @@ class SDLTSiteConfigExtension extends DataExtension implements ScaffoldingProvid
                     . ' intended to be used in situations where the hostname of the server differs from the URL users'
                     . ' use to log into the website, such as a proxy server or a web application firewall (WAF).'
                 ),
-                ToggleCompositeField::create(
-                    'DataExportEmailToggle',
-                    'Data Export Email',
-                    [
-                        EmailField::create(
-                            'FromEmailAddress'
-                        ),
-                        HtmlEditorField::create(
-                            'EmailSignature'
-                        )
-                            ->setRows('3'),
-                        TextField::create(
-                            'DataExportEmailSubject',
-                            'Email Subject'
-                        ),
-                        HtmlEditorField::create(
-                            'DataExportEmailBody',
-                            'Email Body'
-                        )
-                            ->setRows(10)
-                            ->setDescription(
-                                '<p class="message notice">You can use the following variable substitutions
-                                in the email body and subject:<br/><br/>' .
-                                '<b>{$dataClass}</b> For exported data class<br/>' .
-                                '<b>{$dataName}</b> For exported data name<br/>' .
-                                '<b>{$fileName}</b> For file name<br/>' .
-                                '<b>{$userName}</b> For user name<br/>' .
-                                '<b>{$userEmail}</b> For user email.</p>'
-                            )
-                    ]
-                )
+                HasOneButtonField::create($this->owner, "DataExportEmail"),
+                HasOneButtonField::create($this->owner, "QuestionnaireEmail"),
+                HasOneButtonField::create($this->owner, "TaskEmail")
             ]
         );
 
