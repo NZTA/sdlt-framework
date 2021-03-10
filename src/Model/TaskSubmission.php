@@ -894,6 +894,7 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                     }
 
                     $submission->Status = TaskSubmission::STATUS_COMPLETE;
+                    $submission->completedByID = $member->ID;
 
                     // if task approval requires then set status to waiting for approval
                     if ($submission->IsTaskApprovalRequired) {
@@ -951,6 +952,7 @@ class TaskSubmission extends DataObject implements ScaffoldingProvider
                     }
 
                     $submission->Status = TaskSubmission::STATUS_COMPLETE;
+                    $submission->completedByID = $member->ID;
                     $submission->RiskResultData = $submission->getRiskResultBasedOnAnswer();
 
                     // if task approval requires then set status to waiting for approval
